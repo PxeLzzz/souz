@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="mn" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Дүрэмт хувцасны Зөрчил — Бүртгэлийн Систем</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════ LOGIN PAGE ═══════════════════════════ -->
+<div id="loginPage" class="login-page">
+  <div class="login-bg-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+  </div>
+  <div class="login-card glass-card">
+    <div class="login-logo">
+      <div class="logo-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+      <h1>EduTrack</h1>
+      <p>Сургуулийн Дүрэмт Хувцасны Зөрчил Бүртгэлийн Систем</p>
+    </div>
+    <div class="login-form">
+      <div class="form-group">
+        <label><i class="fa-solid fa-user"></i> Нэвтрэх нэр</label>
+        <input type="text" id="loginUsername" placeholder="admin" autocomplete="off" />
+      </div>
+      <div class="form-group">
+        <label><i class="fa-solid fa-lock"></i> Нууц үг</label>
+        <div class="password-wrap">
+          <input type="password" id="loginPassword" placeholder="••••••••" />
+          <button type="button" class="toggle-pass" onclick="togglePassword()"><i class="fa-solid fa-eye"></i></button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="checkbox-label">
+          <input type="checkbox" id="rememberMe" /> Намайг сана
+        </label>
+      </div>
+      <button class="btn-primary btn-login" onclick="doLogin()">
+        <span>Нэвтрэх</span><i class="fa-solid fa-arrow-right"></i>
+      </button>
+      <div class="login-hint">Турших: <strong>admin</strong> / <strong>admin123</strong></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ MAIN APP ═══════════════════════════ -->
+<div id="app" class="app hidden">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon-sm"><i class="fa-solid fa-graduation-cap"></i></div>
+        <span class="sidebar-title">EduTrack</span>
+      </div>
+      <button class="sidebar-close" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Үндсэн</div>
+      <a href="#" class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+        <i class="fa-solid fa-chart-pie"></i><span>Хяналтын самбар</span>
+      </a>
+      <a href="#" class="nav-item" data-page="violations" onclick="navigate('violations')">
+        <i class="fa-solid fa-triangle-exclamation"></i><span>Зөрчил бүртгэл</span>
+        <span class="nav-badge" id="totalBadge">0</span>
+      </a>
+      <a href="#" class="nav-item" data-page="weekly" onclick="navigate('weekly')">
+        <i class="fa-solid fa-calendar-week"></i><span>7 хоногийн харагдац</span>
+      </a>
+
+      <div class="nav-section-label">Удирдлага</div>
+      <a href="#" class="nav-item" data-page="classes" onclick="navigate('classes')">
+        <i class="fa-solid fa-school"></i><span>Ангиуд</span>
+      </a>
+      <a href="#" class="nav-item" data-page="analytics" onclick="navigate('analytics')">
+        <i class="fa-solid fa-chart-line"></i><span>Аналитик</span>
+      </a>
+
+      <div class="nav-section-label">Хандалт</div>
+      <a href="#" class="nav-item" data-page="parent" onclick="navigate('parent')">
+        <i class="fa-solid fa-users"></i><span>Эцэг эхийн харагдац</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar"><i class="fa-solid fa-user-shield"></i></div>
+        <div class="user-info">
+          <span class="user-name" id="sidebarUsername">Админ</span>
+          <span class="user-role">Системийн админ</span>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="doLogout()" title="Гарах"><i class="fa-solid fa-right-from-bracket"></i></button>
+    </div>
+  </aside>
+
+  <!-- OVERLAY -->
+  <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+        <div class="breadcrumb" id="breadcrumb">Хяналтын самбар</div>
+      </div>
+      <div class="topbar-right">
+        <button class="theme-toggle" onclick="toggleTheme()" title="Харанхуй/Гэрэл горим">
+          <i class="fa-solid fa-moon" id="themeIcon"></i>
+        </button>
+        <div class="notification-btn" onclick="toggleNotificationCenter()">
+          <i class="fa-solid fa-bell"></i>
+          <span class="notif-dot" id="notifDot"></span>
+        </div>
+        <div class="topbar-date" id="topbarDate"></div>
+      </div>
+    </header>
+
+    <!-- NOTIFICATION CENTER -->
+    <div id="notifCenter" class="notif-center hidden">
+      <div class="notif-header">
+        <span>Мэдэгдэл</span>
+        <button onclick="clearNotifications()"><i class="fa-solid fa-trash"></i></button>
+      </div>
+      <div id="notifList" class="notif-list"></div>
+    </div>
+
+    <!-- PAGES -->
+    <div class="pages-wrapper">
+
+      <!-- ── DASHBOARD ── -->
+      <section id="page-dashboard" class="page active">
+        <div class="page-header">
+          <h2>Хяналтын самбар</h2>
+          <p>Нийт зөрчлийн товч мэдээлэл</p>
+        </div>
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card glass-card animate-in">
+            <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
+            <div class="stat-info">
+              <div class="stat-value counter" id="statTotal">0</div>
+              <div class="stat-label">Нийт бүртгэл</div>
+            </div>
+          </div>
+          <div class="stat-card glass-card animate-in" style="--delay:.08s">
+            <div class="stat-icon orange"><i class="fa-solid fa-calendar-week"></i></div>
+            <div class="stat-info">
+              <div class="stat-value counter" id="statWeek1">0</div>
+              <div class="stat-label">1-р 7 хоног</div>
+            </div>
+          </div>
+          <div class="stat-card glass-card animate-in" style="--delay:.16s">
+            <div class="stat-icon purple"><i class="fa-solid fa-calendar-week"></i></div>
+            <div class="stat-info">
+              <div class="stat-value counter" id="statWeek2">0</div>
+              <div class="stat-label">2-р 7 хоног</div>
+            </div>
+          </div>
+          <div class="stat-card glass-card animate-in" style="--delay:.24s">
+            <div class="stat-icon green"><i class="fa-solid fa-school"></i></div>
+            <div class="stat-info">
+              <div class="stat-value counter" id="statClasses">0</div>
+              <div class="stat-label">Хамрагдсан анги</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="chart-card glass-card animate-in" style="--delay:.1s">
+            <div class="chart-card-header"><h3><i class="fa-solid fa-bar-chart"></i> Ангиар зөрчил</h3></div>
+            <canvas id="barChart" height="220"></canvas>
+          </div>
+          <div class="chart-card glass-card animate-in" style="--delay:.2s">
+            <div class="chart-card-header"><h3><i class="fa-solid fa-chart-pie"></i> Ангийн эзлэх хувь</h3></div>
+            <canvas id="pieChart" height="220"></canvas>
+          </div>
+          <div class="chart-card glass-card chart-full animate-in" style="--delay:.3s">
+            <div class="chart-card-header"><h3><i class="fa-solid fa-chart-line"></i> 7 хоногийн трэнд</h3></div>
+            <canvas id="lineChart" height="160"></canvas>
+          </div>
+        </div>
+
+        <div class="recent-section glass-card animate-in" style="--delay:.4s">
+          <div class="section-header">
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> Сүүлийн үйл явдал</h3>
+          </div>
+          <div id="recentFeed" class="recent-feed"></div>
+        </div>
+      </section>
+
+      <!-- ── VIOLATIONS ── -->
+      <section id="page-violations" class="page hidden">
+        <div class="page-header flex-between">
+          <div>
+            <h2>Зөрчил бүртгэл</h2>
+            <p>Бүх сурагчдын зөрчлийн бүртгэл</p>
+          </div>
+          <button class="btn-primary" onclick="openAddModal()">
+            <i class="fa-solid fa-plus"></i> Нэмэх
+          </button>
+        </div>
+
+        <!-- FILTER BAR -->
+        <div class="filter-bar glass-card">
+          <div class="search-wrap">
+            <i class="fa-solid fa-search"></i>
+            <input type="text" id="searchInput" placeholder="Нэрээр хайх..." oninput="applyFilters()" />
+            <div id="autocompleteBox" class="autocomplete-box hidden"></div>
+          </div>
+          <select id="filterClass" onchange="applyFilters()"><option value="">Бүх анги</option></select>
+          <select id="filterWeek" onchange="applyFilters()">
+            <option value="">Бүх 7 хоног</option>
+            <option value="1">1-р 7 хоног</option>
+            <option value="2">2-р 7 хоног</option>
+            <option value="3">3-р 7 хоног</option>
+            <option value="4">4-р 7 хоног</option>
+          </select>
+          <select id="filterType" onchange="applyFilters()">
+            <option value="">Бүх төрөл</option>
+            <option value="1">Дүрэмт хувцасгүй</option>
+            <option value="2">Хэсэгчилсэн зөрчил</option>
+            <option value="3">Давтан зөрчил</option>
+          </select>
+          <button class="btn-secondary" onclick="clearFilters()"><i class="fa-solid fa-xmark"></i> Цэвэрлэх</button>
+          <div class="export-btns">
+            <button class="btn-export" onclick="exportExcel()" title="Excel"><i class="fa-solid fa-file-excel"></i></button>
+            <button class="btn-export" onclick="exportPDF()" title="PDF"><i class="fa-solid fa-file-pdf"></i></button>
+            <button class="btn-export" onclick="printReport()" title="Хэвлэх"><i class="fa-solid fa-print"></i></button>
+          </div>
+        </div>
+
+        <!-- WEEK TABS -->
+        <div class="week-tabs">
+          <button class="week-tab active" data-week="all" onclick="setWeekTab(this,'all')">Бүгд</button>
+          <button class="week-tab" data-week="1" onclick="setWeekTab(this,'1')">1-р 7 хоног</button>
+          <button class="week-tab" data-week="2" onclick="setWeekTab(this,'2')">2-р 7 хоног</button>
+          <button class="week-tab" data-week="3" onclick="setWeekTab(this,'3')">3-р 7 хоног</button>
+          <button class="week-tab" data-week="4" onclick="setWeekTab(this,'4')">4-р 7 хоног</button>
+        </div>
+
+        <!-- BULK ACTIONS -->
+        <div id="bulkBar" class="bulk-bar hidden">
+          <span id="bulkCount">0 сурагч сонгогдсон</span>
+          <button class="btn-danger-sm" onclick="bulkDelete()"><i class="fa-solid fa-trash"></i> Устгах</button>
+          <button class="btn-secondary-sm" onclick="clearSelection()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- TABLE -->
+        <div class="table-wrap glass-card">
+          <table id="violationsTable">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()" /></th>
+                <th onclick="sortTable('name')" class="sortable">Нэр <i class="fa-solid fa-sort"></i></th>
+                <th onclick="sortTable('class')" class="sortable">Анги <i class="fa-solid fa-sort"></i></th>
+                <th onclick="sortTable('week')" class="sortable">7 хоног <i class="fa-solid fa-sort"></i></th>
+                <th onclick="sortTable('date')" class="sortable">Огноо <i class="fa-solid fa-sort"></i></th>
+                <th>Зөрчлийн төрөл</th>
+                <th>Тайлбар</th>
+                <th>Үйлдэл</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+          <div id="emptyState" class="empty-state hidden">
+            <div class="empty-icon"><i class="fa-solid fa-folder-open"></i></div>
+            <p>Мэдээлэл олдсонгүй</p>
+            <span>Шинэ зөрчил бүртгэхийн тулд "Нэмэх" дарна уу</span>
+          </div>
+        </div>
+
+        <!-- PAGINATION -->
+        <div class="pagination" id="pagination"></div>
+      </section>
+
+      <!-- ── WEEKLY VIEW ── -->
+      <section id="page-weekly" class="page hidden">
+        <div class="page-header"><h2>7 хоногийн харагдац</h2><p>Долоо хоног тус бүрийн дэлгэрэнгүй мэдээлэл</p></div>
+        <div class="week-tabs">
+          <button class="week-tab active" data-week="1" onclick="setWeeklyTab(this,1)">1-р 7 хоног</button>
+          <button class="week-tab" data-week="2" onclick="setWeeklyTab(this,2)">2-р 7 хоног</button>
+          <button class="week-tab" data-week="3" onclick="setWeeklyTab(this,3)">3-р 7 хоног</button>
+          <button class="week-tab" data-week="4" onclick="setWeeklyTab(this,4)">4-р 7 хоног</button>
+        </div>
+        <div id="weeklyContent"></div>
+      </section>
+
+      <!-- ── CLASSES ── -->
+      <section id="page-classes" class="page hidden">
+        <div class="page-header flex-between">
+          <div><h2>Ангиуд</h2><p>Ангиудын удирдлага</p></div>
+          <button class="btn-primary" onclick="openClassModal()"><i class="fa-solid fa-plus"></i> Анги нэмэх</button>
+        </div>
+        <div id="classGrid" class="class-grid"></div>
+        <div id="classDetail" class="class-detail hidden"></div>
+      </section>
+
+      <!-- ── ANALYTICS ── -->
+      <section id="page-analytics" class="page hidden">
+        <div class="page-header"><h2>Аналитик</h2><p>Гүнзгий дүн шинжилгээ</p></div>
+        <div class="charts-grid">
+          <div class="chart-card glass-card">
+            <div class="chart-card-header"><h3><i class="fa-solid fa-bar-chart"></i> Ангиар нарийвчилсан</h3></div>
+            <canvas id="analyticsBar" height="260"></canvas>
+          </div>
+          <div class="chart-card glass-card">
+            <div class="chart-card-header"><h3><i class="fa-solid fa-circle-half-stroke"></i> Зөрчлийн төрлөөр</h3></div>
+            <canvas id="analyticsPie" height="260"></canvas>
+          </div>
+          <div class="chart-card glass-card chart-full">
+            <div class="chart-card-header"><h3><i class="fa-solid fa-calendar"></i> Огноогоор өдрийн трэнд</h3></div>
+            <canvas id="analyticsLine" height="160"></canvas>
+          </div>
+        </div>
+        <div id="analyticsTable" class="glass-card" style="margin-top:1.5rem;overflow:auto;border-radius:16px;"></div>
+      </section>
+
+      <!-- ── PARENT VIEW ── -->
+      <section id="page-parent" class="page hidden">
+        <div class="page-header">
+          <h2><i class="fa-solid fa-eye"></i> Эцэг эхийн харагдац</h2>
+          <p>Зөвхөн унших горим — Зөрчлийн мэдээлэл харах</p>
+        </div>
+        <div class="parent-search glass-card">
+          <div class="search-wrap">
+            <i class="fa-solid fa-search"></i>
+            <input type="text" id="parentSearch" placeholder="Сурагчийн нэрээр хайх..." oninput="parentSearchFn()" />
+          </div>
+          <select id="parentClassFilter" onchange="parentSearchFn()"><option value="">Бүх анги</option></select>
+          <select id="parentWeekFilter" onchange="parentSearchFn()">
+            <option value="">Бүх 7 хоног</option>
+            <option value="1">1-р 7 хоног</option>
+            <option value="2">2-р 7 хоног</option>
+            <option value="3">3-р 7 хоног</option>
+            <option value="4">4-р 7 хоног</option>
+          </select>
+        </div>
+        <div id="parentResults" class="parent-results"></div>
+      </section>
+
+    </div><!-- /pages-wrapper -->
+  </main>
+
+  <!-- FAB -->
+  <button class="fab" onclick="openAddModal()" title="Шинэ зөрчил нэмэх">
+    <i class="fa-solid fa-plus"></i>
+  </button>
+
+</div><!-- /app -->
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- Add/Edit Student Modal -->
+<div id="studentModal" class="modal-overlay hidden">
+  <div class="modal glass-card">
+    <div class="modal-header">
+      <h3 id="modalTitle">Зөрчил нэмэх</h3>
+      <button class="modal-close" onclick="closeModal('studentModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Овог нэр <span class="req">*</span></label>
+          <input type="text" id="fName" placeholder="Сурагчийн нэр" />
+        </div>
+        <div class="form-group">
+          <label>Анги <span class="req">*</span></label>
+          <select id="fClass"></select>
+        </div>
+        <div class="form-group">
+          <label>Бүлэг</label>
+          <input type="text" id="fGroup" placeholder="Бүлэг" />
+        </div>
+        <div class="form-group">
+          <label>Регистр</label>
+          <input type="text" id="fRegister" placeholder="Регистрийн дугаар" />
+        </div>
+        <div class="form-group">
+          <label>Огноо <span class="req">*</span></label>
+          <input type="date" id="fDate" />
+        </div>
+        <div class="form-group">
+          <label>7 хоног <span class="req">*</span></label>
+          <select id="fWeek">
+            <option value="1">1-р 7 хоног</option>
+            <option value="2">2-р 7 хоног</option>
+            <option value="3">3-р 7 хоног</option>
+            <option value="4">4-р 7 хоног</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Зөрчлийн төрөл <span class="req">*</span></label>
+          <select id="fType">
+            <option value="1">Дүрэмт хувцасгүй</option>
+            <option value="2">Хэсэгчилсэн зөрчил</option>
+            <option value="3">Давтан зөрчил</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Эцэг эхийн утас</label>
+          <input type="text" id="fPhone" placeholder="+976 xxxxxxxx" />
+        </div>
+        <div class="form-group form-full">
+          <label>Тайлбар</label>
+          <textarea id="fNote" placeholder="Нэмэлт тайлбар..."></textarea>
+        </div>
+        <div class="form-group form-full">
+          <label>Профайл зураг</label>
+          <div class="image-upload-area" onclick="document.getElementById('fImage').click()">
+            <img id="imagePreview" src="" alt="" class="hidden" />
+            <div id="imageUploadPlaceholder"><i class="fa-solid fa-camera"></i><span>Зураг оруулах</span></div>
+          </div>
+          <input type="file" id="fImage" accept="image/*" class="hidden" onchange="previewImage(event)" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('studentModal')">Болих</button>
+      <button class="btn-primary" onclick="saveStudent()"><i class="fa-solid fa-save"></i> Хадгалах</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal-overlay hidden">
+  <div class="modal modal-sm glass-card">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i> Устгах</h3>
+      <button class="modal-close" onclick="closeModal('deleteModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p id="deleteMessage">Энэ бүртгэлийг устгах уу? Буцаах боломжгүй!</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('deleteModal')">Болих</button>
+      <button class="btn-danger" onclick="confirmDelete()"><i class="fa-solid fa-trash"></i> Устгах</button>
+    </div>
+  </div>
+</div>
+
+<!-- Class Modal -->
+<div id="classModal" class="modal-overlay hidden">
+  <div class="modal modal-sm glass-card">
+    <div class="modal-header">
+      <h3 id="classModalTitle">Анги нэмэх</h3>
+      <button class="modal-close" onclick="closeModal('classModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Ангийн нэр <span class="req">*</span></label>
+        <input type="text" id="fClassName" placeholder="Жишээ: 10-3" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('classModal')">Болих</button>
+      <button class="btn-primary" onclick="saveClass()"><i class="fa-solid fa-save"></i> Хадгалах</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
